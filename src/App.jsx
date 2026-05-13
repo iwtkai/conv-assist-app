@@ -433,6 +433,7 @@ export default function ConversationAssistant() {
     setInput(""); setResult(null); setError(null);
   };
 
+
   const copyText = (text, idx) => {
     navigator.clipboard.writeText(text);
     setCopied(idx);
@@ -755,6 +756,12 @@ export default function ConversationAssistant() {
         )}
 
       </main>
+
+      <div style={{ display: "flex", justifyContent: "center", padding: "8px 16px 0" }}>
+        <a href="https://ko-fi.com/A0A01ZHER8" target="_blank" rel="noreferrer">
+          <img height="36" style={{ border: 0, height: 36 }} src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" alt="Buy Me a Coffee at ko-fi.com" />
+        </a>
+      </div>
 
       <footer style={{
         borderTop: "1px solid var(--border)",
