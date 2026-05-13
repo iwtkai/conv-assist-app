@@ -1,5 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
+function getInitialTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored === "light" || stored === "dark") return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+const SunIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+    <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+);
+
 const WORKER_URL = "https://conv-assist-proxy.sv-mu-g-em-d-9-xxx.workers.dev"; // ← Worker URL
 
 const PROMPTS = {
@@ -36,15 +57,213 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 Make the English sound native and natural for the context.`,
 };
 
-const toneColor = { casual: "#4ade80", neutral: "#60a5fa", formal: "#f59e0b" };
-const toneLabel = { casual: "カジュアル", neutral: "ニュートラル", formal: "フォーマル" };
-
-const LANGS = {
-  en: { code: "en-US", label: "EN", sublabel: "相手の英語を聞き取る", flag: "🇺🇸" },
-  ja: { code: "ja-JP", label: "JA", sublabel: "自分の日本語を英訳する", flag: "🇯🇵" },
+const TONE_META = {
+  casual:  { color: "#34d399", bg: "rgba(52,211,153,0.08)",  label: "カジュアル" },
+  neutral: { color: "#60a5fa", bg: "rgba(96,165,250,0.08)", label: "ニュートラル" },
+  formal:  { color: "#f59e0b", bg: "rgba(245,158,11,0.08)", label: "フォーマル" },
 };
 
+const LANGS = {
+  en: { code: "en-US", label: "EN", sublabel: "相手の英語を聞き取る", flag: "🇺🇸", accent: "#3b82f6", accentDark: "#1d4ed8" },
+  ja: { code: "ja-JP", label: "JA", sublabel: "自分の日本語を英訳する", flag: "🇯🇵", accent: "#a78bfa", accentDark: "#7c3aed" },
+};
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #040711;
+    --surface: #080f1e;
+    --surface-2: #0d1628;
+    --surface-3: #111e34;
+    --border: rgba(255,255,255,0.10);
+    --border-subtle: rgba(255,255,255,0.06);
+    --text-primary: #f1f5f9;
+    --text-secondary: #b8c5d6;
+    --text-muted: #7a8fa8;
+    --text-ghost: #364d66;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --font-mono: 'JetBrains Mono', 'DM Mono', monospace;
+  }
+
+  [data-theme="light"] {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f6;
+    --surface-3: #e4e9f2;
+    --border: rgba(0,0,0,0.10);
+    --border-subtle: rgba(0,0,0,0.06);
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --text-ghost: #9aabbd;
+  }
+
+  html, body, #root { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Hiragino Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.18); border-radius: 2px; }
+
+  textarea { font-family: inherit; }
+  textarea:focus { outline: none; }
+  button { cursor: pointer; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.35; }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes ripple {
+    0%   { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(1.9); opacity: 0; }
+  }
+
+  .fade-up    { animation: fadeUp 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+  .pulsing    { animation: pulse 1.6s ease-in-out infinite; }
+  .spinning   { animation: spin 0.9s linear infinite; }
+  .ripple-1   { animation: ripple 2s ease-out infinite; }
+  .ripple-2   { animation: ripple 2s ease-out 0.65s infinite; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .label-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .response-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .response-card:hover {
+    background: var(--surface-2);
+    border-color: rgba(128,128,128,0.15);
+  }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .copy-btn:hover { border-color: rgba(128,128,128,0.25); color: var(--text-secondary); }
+  .copy-btn.copied { border-color: rgba(52,211,153,0.3); color: #34d399; }
+
+  .lang-tab {
+    flex: 1;
+    padding: 10px 8px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.2s;
+  }
+  .lang-tab:hover:not(.active) { background: rgba(255,255,255,0.03); }
+
+  .toggle-track {
+    width: 34px;
+    height: 18px;
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .reset-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: rgba(128,128,128,0.2); color: var(--text-secondary); }
+
+  .analyze-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .analyze-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+  .analyze-btn:active:not(:disabled) { transform: translateY(0); }
+  .analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+`;
+
 export default function ConversationAssistant() {
+  const [theme, setTheme] = useState(getInitialTheme);
   const [lang, setLang] = useState("en");
   const [input, setInput] = useState("");
   const [interim, setInterim] = useState("");
@@ -55,6 +274,13 @@ export default function ConversationAssistant() {
   const [copied, setCopied] = useState(null);
   const [supported, setSupported] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
+
+  const isDark = theme === "dark";
+  const toggleTheme = () => {
+    const next = isDark ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("theme", next);
+  };
 
   const recognitionRef = useRef(null);
   const silenceTimer = useRef(null);
@@ -154,201 +380,294 @@ export default function ConversationAssistant() {
 
   const copyText = (text, idx) => {
     navigator.clipboard.writeText(text);
-    setCopied(idx); setTimeout(() => setCopied(null), 1500);
+    setCopied(idx);
+    setTimeout(() => setCopied(null), 1500);
   };
 
+  const L = LANGS[lang];
   const isEN = lang === "en";
 
   return (
-    <div style={{
-      minHeight: "100vh", background: "#080b12", color: "#e2e8f0",
-      fontFamily: "'DM Sans', 'Hiragino Sans', sans-serif",
-      display: "flex", flexDirection: "column",
-    }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
-        * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 2px; }
-        textarea:focus { outline: none; }
-        @keyframes fadeSlide { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
-        @keyframes ripple { 0%{transform:scale(1);opacity:0.7}100%{transform:scale(2.4);opacity:0} }
-        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
-        @keyframes spin { to{transform:rotate(360deg)} }
-        .fade-in { animation: fadeSlide 0.3s ease forwards; }
-        .pulse { animation: pulse 1.5s ease-in-out infinite; }
-        .spin { animation: spin 1s linear infinite; }
-        .mic-ring { animation: ripple 1.8s ease-out infinite; }
-        .mic-ring-2 { animation: ripple 1.8s ease-out 0.6s infinite; }
-        .rc:hover { background: #111826 !important; }
-        .copy-btn:hover { color: #94a3b8 !important; }
-        .lang-btn { transition: all 0.2s; }
-        .lang-btn:hover { opacity: 0.85; }
-        .reset-btn:hover { color: #64748b !important; border-color: #334155 !important; }
-      `}</style>
+    <div data-theme={theme} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", transition: "background 0.25s, color 0.25s" }}>
+      <style>{CSS}</style>
 
-      <div style={{ padding: "13px 18px", borderBottom: "1px solid #10172a", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 8px #4ade8088" }} />
-        <span style={{ fontFamily: "'DM Mono'", fontSize: 11, color: "#3a4a60", letterSpacing: "0.12em" }}>CONV ASSIST</span>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 11, color: "#2d3d52", fontFamily: "'DM Mono'" }}>自動解析</span>
-          <div onClick={() => setAutoAnalyze(v => !v)} style={{
-            width: 32, height: 17, borderRadius: 9,
-            background: autoAnalyze ? "#1d4ed8" : "#1a2235",
-            cursor: "pointer", position: "relative", transition: "background 0.2s",
+      {/* Header */}
+      <header style={{
+        padding: "0 16px",
+        height: 48,
+        borderBottom: "1px solid var(--border)",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 24, height: 24, borderRadius: 6,
+            background: `linear-gradient(135deg, ${L.accentDark}, ${L.accent})`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, transition: "background 0.3s",
           }}>
-            <div style={{
-              position: "absolute", top: 2, left: autoAnalyze ? 17 : 2,
-              width: 13, height: 13, borderRadius: "50%", background: "#fff",
-              transition: "left 0.2s",
-            }} />
+            💬
+          </div>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.1em" }}>
+            CONV ASSIST
+          </span>
+        </div>
+
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 30, height: 30, borderRadius: "var(--radius-sm)",
+              background: "var(--surface-2)", border: "1px solid var(--border)",
+              color: "var(--text-secondary)", transition: "all 0.2s",
+            }}
+            title={isDark ? "ライトモードに切替" : "ダークモードに切替"}
+          >
+            {isDark ? <SunIcon /> : <MoonIcon />}
+          </button>
+
+          <span style={{ fontSize: 11, color: "var(--text-ghost)", fontFamily: "var(--font-mono)" }}>自動解析</span>
+          <div
+            className="toggle-track"
+            onClick={() => setAutoAnalyze(v => !v)}
+            style={{ background: autoAnalyze ? L.accentDark : "var(--surface-3)" }}
+          >
+            <div className="toggle-thumb" style={{ left: autoAnalyze ? 19 : 3 }} />
           </div>
         </div>
-      </div>
+      </header>
 
-      <div style={{ padding: "16px 18px 0" }}>
-        <div style={{ display: "flex", background: "#0d1220", border: "1px solid #1a2540", borderRadius: 10, padding: 4, gap: 4 }}>
+      {/* Lang switcher */}
+      <div style={{ padding: "12px 16px 0", flexShrink: 0 }}>
+        <div style={{
+          display: "flex",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-md)",
+          padding: 3,
+          gap: 3,
+        }}>
           {Object.entries(LANGS).map(([key, val]) => {
             const active = lang === key;
-            const accent = key === "en" ? "#1d4ed8" : "#7c3aed";
             return (
-              <button key={key} className="lang-btn" onClick={() => switchLang(key)}
+              <button
+                key={key}
+                className={`lang-tab${active ? " active" : ""}`}
+                onClick={() => switchLang(key)}
                 style={{
-                  flex: 1, padding: "10px 8px", borderRadius: 7, border: "none",
-                  background: active ? accent : "transparent",
-                  cursor: "pointer", transition: "all 0.2s",
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  boxShadow: active ? `0 0 16px ${accent}44` : "none",
-                }}>
+                  background: active ? val.accentDark : "transparent",
+                  boxShadow: active ? `0 0 20px ${val.accent}22` : "none",
+                  borderRadius: "var(--radius-sm)",
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 16 }}>{val.flag}</span>
-                  <span style={{ fontFamily: "'DM Mono'", fontSize: 13, fontWeight: 600, color: active ? "#fff" : "#3a4a60", letterSpacing: "0.08em" }}>{val.label}</span>
+                  <span style={{ fontSize: 15 }}>{val.flag}</span>
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600,
+                    color: active ? "#fff" : "var(--text-ghost)",
+                    letterSpacing: "0.08em",
+                  }}>
+                    {val.label}
+                  </span>
                 </div>
-                <span style={{ fontSize: 11, color: active ? "rgba(255,255,255,0.7)" : "#2d3a4d" }}>{val.sublabel}</span>
+                <span style={{ fontSize: 11, color: active ? "rgba(255,255,255,0.6)" : "var(--text-ghost)" }}>
+                  {val.sublabel}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "18px", gap: 18, overflowY: "auto" }}>
+      {/* Main scroll area */}
+      <main style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
+
         {!supported && (
-          <div style={{ fontSize: 12, color: "#f87171", background: "#2d1515", padding: "8px 14px", borderRadius: 6 }}>
+          <div style={{
+            padding: "10px 14px", borderRadius: "var(--radius-sm)",
+            background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)",
+            fontSize: 12, color: "#f87171",
+          }}>
             ⚠ Chrome / Edge のみ音声入力に対応しています
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "8px 0" }}>
+        {/* Mic section */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "16px 0 8px" }}>
           <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {listening && (
               <>
-                <div className="mic-ring" style={{ position: "absolute", width: 70, height: 70, borderRadius: "50%", border: `2px solid ${isEN ? "#3b82f6" : "#8b5cf6"}` }} />
-                <div className="mic-ring-2" style={{ position: "absolute", width: 70, height: 70, borderRadius: "50%", border: `2px solid ${isEN ? "#3b82f6" : "#8b5cf6"}` }} />
+                <div className="ripple-1" style={{
+                  position: "absolute", width: 80, height: 80, borderRadius: "50%",
+                  border: `1.5px solid ${L.accent}`,
+                }} />
+                <div className="ripple-2" style={{
+                  position: "absolute", width: 80, height: 80, borderRadius: "50%",
+                  border: `1.5px solid ${L.accent}`,
+                }} />
               </>
             )}
-            <button onClick={toggleListen} disabled={!supported}
+            <button
+              onClick={toggleListen}
+              disabled={!supported}
               style={{
-                width: 66, height: 66, borderRadius: "50%", border: "none",
-                background: listening ? (isEN ? "#2563eb" : "#7c3aed") : (isEN ? "#1d4ed8" : "#6d28d9"),
-                cursor: supported ? "pointer" : "not-allowed",
+                width: 72, height: 72, borderRadius: "50%", border: "none",
+                background: listening
+                  ? `linear-gradient(135deg, ${L.accentDark}, ${L.accent})`
+                  : `linear-gradient(135deg, ${L.accentDark}cc, ${L.accentDark})`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 26, transition: "all 0.2s",
-                boxShadow: listening ? `0 0 28px ${isEN ? "#3b82f688" : "#8b5cf688"}` : `0 0 14px ${isEN ? "#1d4ed844" : "#6d28d944"}`,
-              }}>
+                fontSize: 28, transition: "all 0.25s",
+                boxShadow: listening
+                  ? `0 0 40px ${L.accent}55, 0 8px 24px rgba(0,0,0,0.4)`
+                  : `0 0 16px ${L.accentDark}33, 0 4px 12px rgba(0,0,0,0.3)`,
+                cursor: supported ? "pointer" : "not-allowed",
+              }}
+            >
               {listening ? "⏹" : "🎙"}
             </button>
           </div>
-          <div style={{ fontSize: 12, fontFamily: "'DM Mono'", letterSpacing: "0.08em", color: listening ? (isEN ? "#60a5fa" : "#a78bfa") : "#2d3a4d" }}
-            className={listening ? "pulse" : ""}>
-            {listening ? `● 録音中… (${isEN ? "英語" : "日本語"})` : `タップして${isEN ? "英語" : "日本語"}で録音`}
+
+          <div style={{
+            fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em",
+            color: listening ? L.accent : "var(--text-ghost)",
+            transition: "color 0.3s",
+          }} className={listening ? "pulsing" : ""}>
+            {listening
+              ? `● 録音中… (${isEN ? "英語" : "日本語"})`
+              : `タップして${isEN ? "英語" : "日本語"}で録音`}
           </div>
         </div>
 
-        <div style={{ background: "#0d1220", border: "1px solid #141f35", borderRadius: 10, padding: "12px 14px", minHeight: 64 }}>
-          <div style={{ fontSize: 10, color: "#2d3a4d", letterSpacing: "0.12em", marginBottom: 6, fontFamily: "'DM Mono'" }}>
+        {/* Transcript */}
+        <div className="card" style={{ padding: "14px 16px" }}>
+          <div className="section-label" style={{ marginBottom: 8 }}>
             {isEN ? "TRANSCRIPT (EN)" : "TRANSCRIPT (JA)"}
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.7, minHeight: 24 }}>
-            <span style={{ color: "#cbd5e1" }}>{input}</span>
-            {interim && <span style={{ color: "#334155" }}> {interim}</span>}
-            {!input && !interim && <span style={{ color: "#1a2535" }}>{isEN ? "相手の英語がここに表示されます…" : "話した日本語がここに表示されます…"}</span>}
+          <div style={{ fontSize: 14, lineHeight: 1.75, minHeight: 22 }}>
+            {input && <span style={{ color: "var(--text-primary)" }}>{input}</span>}
+            {interim && <span style={{ color: "var(--text-muted)" }}> {interim}</span>}
+            {!input && !interim && (
+              <span style={{ color: "var(--text-ghost)" }}>
+                {isEN ? "相手の英語がここに表示されます…" : "話した日本語がここに表示されます…"}
+              </span>
+            )}
           </div>
           {input && (
-            <textarea value={input} onChange={e => setInput(e.target.value)} rows={2}
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              rows={2}
               style={{
-                width: "100%", marginTop: 8, background: "transparent",
-                border: "none", borderTop: "1px solid #141f35", paddingTop: 8,
-                color: "#64748b", fontSize: 12, resize: "none",
-                fontFamily: "'DM Sans', 'Hiragino Sans', sans-serif", lineHeight: 1.6,
+                width: "100%", marginTop: 10,
+                background: "transparent",
+                border: "none",
+                borderTop: "1px solid var(--border)",
+                paddingTop: 10,
+                color: "var(--text-muted)", fontSize: 12, resize: "none",
+                lineHeight: 1.65,
               }}
-              placeholder="修正はここで編集できます" />
+              placeholder="修正はここで編集できます"
+            />
           )}
         </div>
 
+        {/* Manual analyze button */}
         {input && !autoAnalyze && (
-          <button onClick={() => triggerAnalyze(input.trim(), lang)} disabled={loading}
-            style={{
-              width: "100%", padding: "11px", background: isEN ? "#1d4ed8" : "#6d28d9",
-              border: "none", borderRadius: 8, color: "#fff",
-              fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.6 : 1,
-            }}>
+          <button
+            className="analyze-btn"
+            onClick={() => triggerAnalyze(input.trim(), lang)}
+            disabled={loading}
+            style={{ background: `linear-gradient(135deg, ${L.accentDark}, ${L.accent})` }}
+          >
             解析する →
           </button>
         )}
 
+        {/* Loading */}
         {loading && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, color: isEN ? "#3b82f6" : "#8b5cf6", fontSize: 13 }}>
-            <div className="spin" style={{ width: 15, height: 15, border: "2px solid #1a2235", borderTopColor: isEN ? "#3b82f6" : "#8b5cf6", borderRadius: "50%" }} />
-            解析中…
+          <div style={{ display: "flex", alignItems: "center", gap: 10, color: L.accent, fontSize: 13, padding: "2px 0" }}>
+            <div
+              className="spinning"
+              style={{
+                width: 14, height: 14, borderRadius: "50%",
+                border: `1.5px solid var(--surface-3)`,
+                borderTopColor: L.accent,
+              }}
+            />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.06em" }}>解析中…</span>
           </div>
         )}
 
-        {error && <div style={{ color: "#f87171", fontSize: 13 }}>{error}</div>}
+        {/* Error */}
+        {error && (
+          <div style={{ color: "#f87171", fontSize: 13, padding: "2px 0" }}>{error}</div>
+        )}
 
+        {/* Result */}
         {result && !loading && (
-          <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+            {/* Nuance */}
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 10, color: "#3a4a60", letterSpacing: "0.12em", fontFamily: "'DM Mono'" }}>
-                  {isEN ? "NUANCE" : "INTENT CHECK"}
-                </span>
-                {result.tone && (
-                  <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, background: toneColor[result.tone] + "18", color: toneColor[result.tone], fontFamily: "'DM Mono'", border: `1px solid ${toneColor[result.tone]}28` }}>
-                    {toneLabel[result.tone]}
-                  </span>
-                )}
+                <span className="section-label">{isEN ? "NUANCE" : "INTENT CHECK"}</span>
+                {result.tone && (() => {
+                  const t = TONE_META[result.tone] || TONE_META.neutral;
+                  return (
+                    <span className="label-tag" style={{ background: t.bg, color: t.color }}>
+                      {t.label}
+                    </span>
+                  );
+                })()}
               </div>
-              <div style={{ background: "#0d1220", border: "1px solid #141f35", borderRadius: 8, padding: "11px 13px", fontSize: 13, color: "#7a8fa8", lineHeight: 1.8 }}>
+              <div className="card" style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.85 }}>
                 {result.nuance}
               </div>
             </div>
 
+            {/* Responses */}
             <div>
-              <div style={{ fontSize: 10, color: "#3a4a60", letterSpacing: "0.12em", marginBottom: 8, fontFamily: "'DM Mono'" }}>
+              <div className="section-label" style={{ marginBottom: 8 }}>
                 {isEN ? "RESPONSE OPTIONS" : "ENGLISH PHRASES"}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {result.responses?.map((r, i) => (
-                  <div key={i} className="rc" style={{
-                    background: "#0d1220", border: "1px solid #141f35",
-                    borderLeft: `3px solid ${isEN ? "#1d4ed8" : "#6d28d9"}`,
-                    borderRadius: 8, padding: "11px 13px", transition: "background 0.15s",
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: isEN ? "#0f2040" : "#1a0d35", color: isEN ? "#3b82f6" : "#8b5cf6", fontFamily: "'DM Mono'" }}>{r.label}</span>
-                        <div style={{ fontSize: 15, color: "#e2e8f0", margin: "7px 0 4px", fontWeight: 500, lineHeight: 1.5 }}>{r.english}</div>
-                        <div style={{ fontSize: 12, color: "#3d4f65", lineHeight: 1.6 }}>{r.japanese}</div>
+                  <div key={i} className="response-card">
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <span style={{
+                            fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600,
+                            color: L.accent, opacity: 0.5,
+                          }}>
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <span
+                            className="label-tag"
+                            style={{
+                              background: isEN ? "rgba(59,130,246,0.08)" : "rgba(139,92,246,0.08)",
+                              color: L.accent,
+                            }}
+                          >
+                            {r.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 15, color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.55, marginBottom: 5 }}>
+                          {r.english}
+                        </div>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65 }}>
+                          {r.japanese}
+                        </div>
                       </div>
-                      <button className="copy-btn" onClick={() => copyText(r.english, i)}
-                        style={{
-                          background: "transparent", border: "1px solid #141f35", borderRadius: 5,
-                          padding: "4px 9px", cursor: "pointer", fontSize: 11,
-                          color: copied === i ? "#4ade80" : "#2d3a4d",
-                          fontFamily: "'DM Mono'", flexShrink: 0, transition: "all 0.15s",
-                        }}>
-                        {copied === i ? "✓" : "copy"}
+                      <button
+                        className={`copy-btn${copied === i ? " copied" : ""}`}
+                        onClick={() => copyText(r.english, i)}
+                      >
+                        {copied === i ? "✓ done" : "copy"}
                       </button>
                     </div>
                   </div>
@@ -356,23 +675,26 @@ export default function ConversationAssistant() {
               </div>
             </div>
 
-            <button className="reset-btn" onClick={() => { setInput(""); setResult(null); setError(null); }}
-              style={{
-                background: "transparent", border: "1px solid #141f35", borderRadius: 6,
-                padding: "9px", color: "#2d3a4d", fontSize: 11,
-                cursor: "pointer", fontFamily: "'DM Mono'", letterSpacing: "0.06em", transition: "all 0.2s",
-              }}>
+            <button className="reset-btn" onClick={() => { setInput(""); setResult(null); setError(null); }}>
               ← 新しい録音を始める
             </button>
           </div>
         )}
 
+        {/* Empty state */}
         {!result && !loading && !input && (
-          <div style={{ textAlign: "center", color: "#1a2535", fontSize: 11, lineHeight: 2.2, fontFamily: "'DM Mono'" }}>
-            {isEN ? "🇺🇸 EN モード：相手の英語 → ニュアンス解説 + 日本語返答案" : "🇯🇵 JA モード：自分の日本語 → 自然な英語フレーズ3案"}
+          <div style={{
+            textAlign: "center", padding: "24px 0",
+            color: "var(--text-ghost)", fontSize: 11,
+            fontFamily: "var(--font-mono)", lineHeight: 2.4, letterSpacing: "0.04em",
+          }}>
+            {isEN
+              ? "EN モード：相手の英語 → ニュアンス解説 + 日本語返答案"
+              : "JA モード：自分の日本語 → 自然な英語フレーズ 3 案"}
           </div>
         )}
-      </div>
+
+      </main>
     </div>
   );
 }
