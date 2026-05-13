@@ -265,6 +265,51 @@ const CSS = `
   .analyze-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
   .analyze-btn:active:not(:disabled) { transform: translateY(0); }
   .analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .privacy-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    animation: fadeUp 0.2s ease both;
+  }
+  .privacy-sheet {
+    width: 100%; max-width: 520px;
+    max-height: min(80vh, 640px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    animation: fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .privacy-body {
+    overflow-y: auto;
+    padding: 0 20px 28px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.85;
+    overscroll-behavior: contain;
+  }
+  .privacy-body h2 {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin: 20px 0 6px;
+    text-transform: uppercase;
+  }
+  .privacy-body p { margin-bottom: 4px; }
+  .privacy-link {
+    background: none; border: none; padding: 0;
+    color: var(--text-muted); font-size: 10px;
+    font-family: var(--font-mono); letter-spacing: 0.06em;
+    cursor: pointer; text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s;
+  }
+  .privacy-link:hover { color: var(--text-secondary); }
 `;
 
 export default function ConversationAssistant() {
@@ -280,6 +325,7 @@ export default function ConversationAssistant() {
   const [supported, setSupported] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [stopping, setStopping] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   const isDark = theme === "dark";
   const toggleTheme = () => {
@@ -709,6 +755,60 @@ export default function ConversationAssistant() {
         )}
 
       </main>
+
+      <footer style={{
+        borderTop: "1px solid var(--border)",
+        padding: "10px 16px",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+        flexShrink: 0,
+      }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-ghost)", letterSpacing: "0.08em" }}>
+          © {new Date().getFullYear()} iwtkai
+        </span>
+        <span style={{ color: "var(--border)", fontSize: 10 }}>|</span>
+        <button className="privacy-link" onClick={() => setShowPrivacy(true)}>
+          Privacy Policy
+        </button>
+      </footer>
+
+      {/* Privacy Policy Modal */}
+      {showPrivacy && (
+        <div className="privacy-overlay" onClick={() => setShowPrivacy(false)}>
+          <div className="privacy-sheet" onClick={e => e.stopPropagation()}>
+            <div style={{ padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "0.06em" }}>
+                PRIVACY POLICY
+              </span>
+              <button onClick={() => setShowPrivacy(false)} style={{
+                background: "var(--surface-2)", border: "1px solid var(--border)",
+                borderRadius: 6, width: 28, height: 28, cursor: "pointer",
+                color: "var(--text-muted)", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center",
+              }}>✕</button>
+            </div>
+            <div className="privacy-body">
+              <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 16 }}>最終更新：{new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}</p>
+
+              <h2>収集する情報</h2>
+              <p>本アプリは以下の情報を処理します。</p>
+              <p>・<b>音声・テキスト入力</b>：マイクから取得した音声はブラウザ上でテキストに変換され、AI解析のために送信されます。音声データ自体は保存されません。</p>
+              <p>・<b>テーマ設定</b>：ライト / ダークモードの選択をブラウザの localStorage に保存します。</p>
+
+              <h2>第三者サービス</h2>
+              <p>・<b>Anthropic Claude API</b>：入力テキストをニュアンス解析・返答生成のために送信します。Anthropic のプライバシーポリシーが適用されます。</p>
+              <p>・<b>Cloudflare Workers</b>：API キーを保護するためのプロキシとして使用します。テキストはプロキシを経由しますが、保存はされません。</p>
+
+              <h2>データの保存</h2>
+              <p>サーバー側でのユーザーデータの保存は行いません。セッション内のテキストはページを閉じると消去されます。</p>
+
+              <h2>マイクの使用</h2>
+              <p>音声入力はユーザーが録音ボタンを押した場合のみ有効になります。ブラウザのマイク権限設定からいつでも取り消せます。</p>
+
+              <h2>お問い合わせ</h2>
+              <p>ご不明な点は GitHub リポジトリの Issues よりお問い合わせください。</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
