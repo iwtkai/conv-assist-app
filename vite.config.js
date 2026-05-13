@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/conv-assist/", // ← GitHubリポジトリ名に合わせてください
+  base: "/conv-assist-app/", // ← GitHubリポジトリ名に合わせてください
 });
