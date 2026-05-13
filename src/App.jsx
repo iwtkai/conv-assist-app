@@ -246,6 +246,11 @@ const CSS = `
   }
   .reset-btn:hover { border-color: rgba(128,128,128,0.2); color: var(--text-secondary); }
 
+  .mic-btn { cursor: pointer; }
+  .mic-btn:hover { transform: scale(1.06); }
+  .mic-btn:active { transform: scale(0.96); }
+  .mic-btn:disabled { cursor: not-allowed; transform: none; }
+
   .analyze-btn {
     width: 100%;
     padding: 12px;
@@ -274,6 +279,7 @@ export default function ConversationAssistant() {
   const [copied, setCopied] = useState(null);
   const [supported, setSupported] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
+  const [stopping, setStopping] = useState(false);
 
   const isDark = theme === "dark";
   const toggleTheme = () => {
@@ -353,8 +359,9 @@ export default function ConversationAssistant() {
     rec.onerror = (e) => {
       if (e.error !== "no-speech") setError("マイクエラー: " + e.error);
       setListening(false);
+      setStopping(false);
     };
-    rec.onend = () => setListening(false);
+    rec.onend = () => { setListening(false); setStopping(false); };
     recognitionRef.current = rec;
 
     return () => { rec.stop(); if (silenceTimer.current) clearTimeout(silenceTimer.current); };
@@ -362,9 +369,11 @@ export default function ConversationAssistant() {
 
   const toggleListen = () => {
     const rec = recognitionRef.current;
-    if (!rec) return;
+    if (!rec || stopping) return;
     if (listening) {
-      rec.stop(); setListening(false); setInterim("");
+      setStopping(true);
+      rec.stop();
+      setInterim("");
       if (silenceTimer.current) clearTimeout(silenceTimer.current);
     } else {
       setInput(""); setResult(null); setError(null); setInterim("");
@@ -373,7 +382,7 @@ export default function ConversationAssistant() {
   };
 
   const switchLang = (l) => {
-    if (listening) { recognitionRef.current?.stop(); setListening(false); setInterim(""); }
+    if (listening) { recognitionRef.current?.stop(); setStopping(true); setInterim(""); }
     setLang(l);
     setInput(""); setResult(null); setError(null);
   };
@@ -512,33 +521,38 @@ export default function ConversationAssistant() {
               </>
             )}
             <button
+              className="mic-btn"
               onClick={toggleListen}
-              disabled={!supported}
+              disabled={!supported || stopping}
               style={{
                 width: 72, height: 72, borderRadius: "50%", border: "none",
-                background: listening
-                  ? `linear-gradient(135deg, ${L.accentDark}, ${L.accent})`
-                  : `linear-gradient(135deg, ${L.accentDark}cc, ${L.accentDark})`,
+                background: stopping
+                  ? `linear-gradient(135deg, #64748b, #94a3b8)`
+                  : listening
+                    ? `linear-gradient(135deg, ${L.accentDark}, ${L.accent})`
+                    : `linear-gradient(135deg, ${L.accentDark}cc, ${L.accentDark})`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 28, transition: "all 0.25s",
-                boxShadow: listening
+                fontSize: 28, transition: "background 0.25s, box-shadow 0.25s, opacity 0.25s",
+                boxShadow: listening && !stopping
                   ? `0 0 40px ${L.accent}55, 0 8px 24px rgba(0,0,0,0.4)`
                   : `0 0 16px ${L.accentDark}33, 0 4px 12px rgba(0,0,0,0.3)`,
-                cursor: supported ? "pointer" : "not-allowed",
+                opacity: stopping ? 0.75 : 1,
               }}
             >
-              {listening ? "⏹" : "🎙"}
+              {stopping ? "⏳" : listening ? "⏹" : "🎙"}
             </button>
           </div>
 
           <div style={{
             fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em",
-            color: listening ? L.accent : "var(--text-ghost)",
+            color: stopping ? "var(--text-muted)" : listening ? L.accent : "var(--text-ghost)",
             transition: "color 0.3s",
-          }} className={listening ? "pulsing" : ""}>
-            {listening
-              ? `● 録音中… (${isEN ? "英語" : "日本語"})`
-              : `タップして${isEN ? "英語" : "日本語"}で録音`}
+          }} className={listening && !stopping ? "pulsing" : ""}>
+            {stopping
+              ? "停止処理中…"
+              : listening
+                ? `● 録音中… (${isEN ? "英語" : "日本語"})`
+                : `タップして${isEN ? "英語" : "日本語"}で録音`}
           </div>
         </div>
 
