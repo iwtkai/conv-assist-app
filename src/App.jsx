@@ -311,6 +311,66 @@ const CSS = `
   }
   .privacy-link:hover { color: var(--text-secondary); }
 
+  .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 18px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .pill-btn:hover  { transform: translateY(-2px); }
+  .pill-btn:active { transform: translateY(0); }
+
+  .pill-kofi {
+    background: linear-gradient(135deg, #1a2640, #0f1a30);
+    border: 1px solid rgba(114,164,242,0.25);
+    color: #72a4f2;
+  }
+  [data-theme="light"] .pill-kofi {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border-color: rgba(114,164,242,0.4);
+    color: #2563eb;
+  }
+  .pill-kofi:hover { box-shadow: 0 6px 20px rgba(114,164,242,0.2); border-color: rgba(114,164,242,0.5); }
+
+  .feedback-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 16px;
+    background: linear-gradient(135deg, #1a3a2a, #0f2a1f);
+    border: 1px solid rgba(52,211,153,0.25);
+    border-radius: 18px;
+    color: #34d399;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  [data-theme="light"] .feedback-btn {
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border-color: rgba(52,211,153,0.4);
+    color: #059669;
+  }
+  .feedback-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52,211,153,0.2);
+    border-color: rgba(52,211,153,0.5);
+  }
+  .feedback-btn:active { transform: translateY(0); }
+
   .kofi-modal-overlay {
     position: fixed; inset: 0; z-index: 100;
     background: rgba(0,0,0,0.45);
@@ -781,9 +841,19 @@ export default function ConversationAssistant() {
 
       </main>
 
-      <div style={{ display: "flex", justifyContent: "center", padding: "8px 16px 0" }}>
-        <a href="https://ko-fi.com/A0A01ZHER8" target="_blank" rel="noreferrer">
-          <img height="36" style={{ border: 0, height: 36 }} src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" alt="Buy Me a Coffee at ko-fi.com" />
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, padding: "8px 16px 0" }}>
+        <a href="https://ko-fi.com/A0A01ZHER8" target="_blank" rel="noreferrer" className="pill-btn pill-kofi">
+          <span style={{ fontSize: 14 }}>☕</span>
+          コーヒーを奢る
+        </a>
+        <a
+          href="https://forms.gle/HnVKmXMkcKgUWD7U6"
+          target="_blank"
+          rel="noreferrer"
+          className="feedback-btn"
+        >
+          <span style={{ fontSize: 14 }}>💬</span>
+          感想を教えてください
         </a>
       </div>
 
@@ -851,7 +921,7 @@ export default function ConversationAssistant() {
                 役に立っていますか？
               </div>
               <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.75 }}>
-                このアプリは無料で使えますが、Ko-fi でのサポートが開発の励みになります。
+                このアプリは無料で使えますが、コーヒー一杯奢ってくれると、次の機能を作る元気が出ます☕
               </div>
             </div>
             <a
