@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 
 function getInitialTheme() {
   const stored = localStorage.getItem("theme");
@@ -310,6 +311,7 @@ const CSS = `
     transition: color 0.15s;
   }
   .privacy-link:hover { color: var(--text-secondary); }
+  a.privacy-link { text-decoration: underline; }
 
   .pill-btn {
     display: inline-flex;
@@ -405,9 +407,6 @@ export default function ConversationAssistant() {
   const [supported, setSupported] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [stopping, setStopping] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showCommercial, setShowCommercial] = useState(false);
   const [showKofi, setShowKofi] = useState(false);
 
   const isDark = theme === "dark";
@@ -869,128 +868,12 @@ export default function ConversationAssistant() {
           © {new Date().getFullYear()} iwtkai
         </span>
         <span style={{ color: "var(--border)", fontSize: 10 }}>|</span>
-        <button className="privacy-link" onClick={() => setShowTerms(true)}>
-          利用規約
-        </button>
+        <Link to="/terms" className="privacy-link">利用規約</Link>
         <span style={{ color: "var(--border)", fontSize: 10 }}>|</span>
-        <button className="privacy-link" onClick={() => setShowPrivacy(true)}>
-          プライバシーポリシー
-        </button>
+        <Link to="/privacy" className="privacy-link">プライバシーポリシー</Link>
         <span style={{ color: "var(--border)", fontSize: 10 }}>|</span>
-        <button className="privacy-link" onClick={() => setShowCommercial(true)}>
-          特定商取引法に基づく表記
-        </button>
+        <Link to="/commercial" className="privacy-link">特定商取引法に基づく表記</Link>
       </footer>
-
-      {/* Privacy Policy Modal */}
-      {showPrivacy && (
-        <div className="privacy-overlay" onClick={() => setShowPrivacy(false)}>
-          <div className="privacy-sheet" onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "0.06em" }}>
-                PRIVACY POLICY
-              </span>
-              <button onClick={() => setShowPrivacy(false)} style={{
-                background: "var(--surface-2)", border: "1px solid var(--border)",
-                borderRadius: 6, width: 28, height: 28, cursor: "pointer",
-                color: "var(--text-muted)", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center",
-              }}>✕</button>
-            </div>
-            <div className="privacy-body">
-              <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 16 }}>最終更新：{new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}</p>
-
-              <h2>収集する情報</h2>
-              <p>本アプリは以下の情報を処理します。</p>
-              <p>・<b>音声・テキスト入力</b>：マイクから取得した音声はブラウザ上でテキストに変換され、AI解析のために送信されます。音声データ自体は保存されません。</p>
-              <p>・<b>テーマ設定</b>：ライト / ダークモードの選択をブラウザの localStorage に保存します。</p>
-
-              <h2>第三者サービス</h2>
-              <p>・<b>Anthropic Claude API</b>：入力テキストをニュアンス解析・返答生成のために送信します。Anthropic のプライバシーポリシーが適用されます。</p>
-              <p>・<b>Cloudflare Workers</b>：API キーを保護するためのプロキシとして使用します。テキストはプロキシを経由しますが、保存はされません。</p>
-
-              <h2>データの保存</h2>
-              <p>サーバー側でのユーザーデータの保存は行いません。セッション内のテキストはページを閉じると消去されます。</p>
-
-              <h2>マイクの使用</h2>
-              <p>音声入力はユーザーが録音ボタンを押した場合のみ有効になります。ブラウザのマイク権限設定からいつでも取り消せます。</p>
-
-              <h2>お問い合わせ</h2>
-              <p>ご不明な点は<a href="https://forms.gle/HnVKmXMkcKgUWD7U6" target="_blank" rel="noreferrer" style={{ color: "var(--text-secondary)" }}>お問い合わせフォーム</a>よりご連絡ください。</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Terms of Service Modal */}
-      {showTerms && (
-        <div className="privacy-overlay" onClick={() => setShowTerms(false)}>
-          <div className="privacy-sheet" onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "0.06em" }}>
-                利用規約
-              </span>
-              <button onClick={() => setShowTerms(false)} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, width: 28, height: 28, cursor: "pointer", color: "var(--text-muted)", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-            </div>
-            <div className="privacy-body">
-              <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 16 }}>最終更新：{new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}</p>
-
-              <h2>サービスについて</h2>
-              <p>Conv Assist（以下「本サービス」）は、英会話のリアルタイムサポートを提供する無料のWebアプリです。</p>
-
-              <h2>免責事項</h2>
-              <p>本サービスが提供する返答例・ニュアンス解説はAIが生成するものであり、正確性・適切性を保証するものではありません。実際の会話での使用はご自身の判断でお願いします。</p>
-              <p>本サービスの利用により生じたいかなる損害についても、開発者は一切の責任を負いません。</p>
-
-              <h2>禁止事項</h2>
-              <p>以下の行為を禁止します。</p>
-              <p>・本サービスを違法な目的に使用すること</p>
-              <p>・サービスの運営を妨害する行為</p>
-              <p>・他者の権利を侵害する行為</p>
-
-              <h2>サービスの変更・終了</h2>
-              <p>予告なくサービス内容の変更・終了を行う場合があります。</p>
-
-              <h2>著作権</h2>
-              <p>本サービスのコードは MIT ライセンスのもとで公開しています。AIが生成したコンテンツの権利はそれぞれの生成AIサービスの利用規約に準じます。</p>
-
-              <h2>規約の変更</h2>
-              <p>本規約は予告なく変更する場合があります。変更後も本サービスを利用した場合、変更に同意したものとみなします。</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 特定商取引法に基づく表記 Modal */}
-      {showCommercial && (
-        <div className="privacy-overlay" onClick={() => setShowCommercial(false)}>
-          <div className="privacy-sheet" onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "0.06em" }}>
-                特定商取引法に基づく表記
-              </span>
-              <button onClick={() => setShowCommercial(false)} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, width: 28, height: 28, cursor: "pointer", color: "var(--text-muted)", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-            </div>
-            <div className="privacy-body">
-              <p style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 16 }}>最終更新：{new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}</p>
-
-              <h2>販売者</h2>
-              <p>iwtkai</p>
-
-              <h2>サービスの内容</h2>
-              <p>英会話リアルタイムサポートWebアプリ「Conv Assist」の提供</p>
-
-              <h2>対価</h2>
-              <p>本サービスは無料で提供しています。Ko-fi を通じた任意のサポートを受け付けていますが、サービスの利用に対価は発生しません。</p>
-
-              <h2>動作環境</h2>
-              <p>Google Chrome または Microsoft Edge（最新版）を推奨します。音声入力機能はこれらのブラウザでのみ動作します。</p>
-
-              <h2>お問い合わせ</h2>
-              <p><a href="https://forms.gle/HnVKmXMkcKgUWD7U6" target="_blank" rel="noreferrer" style={{ color: "var(--text-secondary)" }}>お問い合わせフォーム</a>よりご連絡ください。</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Ko-fi prompt modal */}
       {showKofi && (
