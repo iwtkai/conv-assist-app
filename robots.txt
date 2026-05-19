@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://convassist.app/sitemap.xml
