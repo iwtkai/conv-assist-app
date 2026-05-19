@@ -868,6 +868,8 @@ export default function ConversationAssistant() {
           © {new Date().getFullYear()} iwtkai
         </span>
         <span style={{ color: "var(--border)", fontSize: 10 }}>|</span>
+        <Link to="/about" className="privacy-link">運営者情報</Link>
+        <span style={{ color: "var(--border)", fontSize: 10 }}>|</span>
         <Link to="/terms" className="privacy-link">利用規約</Link>
         <span style={{ color: "var(--border)", fontSize: 10 }}>|</span>
         <Link to="/privacy" className="privacy-link">プライバシーポリシー</Link>

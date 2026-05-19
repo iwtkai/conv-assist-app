@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import Terms from "./pages/Terms.jsx";
 import Commercial from "./pages/Commercial.jsx";
+import About from "./pages/About.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -14,6 +15,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/commercial" element={<Commercial />} />
+        <Route path="/about" element={<About />} />
       </Routes>
     </HashRouter>
   </StrictMode>
