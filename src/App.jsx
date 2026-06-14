@@ -373,25 +373,6 @@ const CSS = `
   }
   .feedback-btn:active { transform: translateY(0); }
 
-  .kofi-modal-overlay {
-    position: fixed; inset: 0; z-index: 100;
-    background: rgba(0,0,0,0.45);
-    backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center;
-    padding: 16px;
-    animation: fadeUp 0.2s ease both;
-  }
-  .kofi-modal {
-    width: 100%; max-width: 340px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
-    padding: 28px 24px 24px;
-    display: flex; flex-direction: column; align-items: center; gap: 14px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.35);
-    animation: fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both;
-    text-align: center;
-  }
 `;
 
 export default function ConversationAssistant() {
@@ -407,7 +388,6 @@ export default function ConversationAssistant() {
   const [supported, setSupported] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [stopping, setStopping] = useState(false);
-  const [showKofi, setShowKofi] = useState(false);
 
   const isDark = theme === "dark";
   const toggleTheme = () => {
@@ -443,9 +423,6 @@ export default function ConversationAssistant() {
       const data = await res.json();
       const raw = data.content?.map(b => b.text || "").join("") || "";
       setResult(JSON.parse(raw));
-      const count = (parseInt(localStorage.getItem("analyzeCount") || "0")) + 1;
-      localStorage.setItem("analyzeCount", count);
-      if (count % 5 === 0) setShowKofi(true);
     } catch {
       setError("解析に失敗しました。もう一度お試しください。");
     } finally {
@@ -877,41 +854,6 @@ export default function ConversationAssistant() {
         <Link to="/commercial" className="privacy-link">特定商取引法に基づく表記</Link>
       </footer>
 
-      {/* Ko-fi prompt modal */}
-      {showKofi && (
-        <div className="kofi-modal-overlay" onClick={() => setShowKofi(false)}>
-          <div className="kofi-modal" onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 36 }}>☕</div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>
-                役に立っていますか？
-              </div>
-              <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.75 }}>
-                このアプリは無料で使えますが、コーヒー一杯奢ってくれると、次の機能を作る元気が出ます☕
-              </div>
-            </div>
-            <a
-              href="https://ko-fi.com/A0A01ZHER8"
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => setShowKofi(false)}
-            >
-              <img height="36" style={{ border: 0, height: 36 }} src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" alt="Buy Me a Coffee at ko-fi.com" />
-            </a>
-            <button
-              onClick={() => setShowKofi(false)}
-              style={{
-                background: "none", border: "none",
-                fontSize: 12, color: "var(--text-muted)",
-                cursor: "pointer", padding: "2px 0",
-                fontFamily: "var(--font-mono)", letterSpacing: "0.04em",
-              }}
-            >
-              今は続ける
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
