@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/", // ← GitHubリポジトリ名に合わせてください
+  base: "/", // Cloudflare Pages 運用では "/" のまま変更不要
 });

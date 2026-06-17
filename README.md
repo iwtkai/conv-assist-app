@@ -67,7 +67,7 @@
 | 音声認識 | Web Speech API（ブラウザネイティブ） |
 | AI | Claude API（`claude-sonnet-4-20250514`） |
 | プロキシ | Cloudflare Workers |
-| デプロイ | GitHub Pages |
+| デプロイ | Cloudflare Pages |
 
 ### アーキテクチャ
 
@@ -105,6 +105,19 @@
 
 ---
 
+## Claude Code での開発
+
+[Claude Code](https://claude.ai/code) を使う場合、以下のスラッシュコマンドが利用できます。
+
+| コマンド | 説明 |
+|----------|------|
+| `/run` | 開発サーバーを起動してブラウザで動作確認 |
+| `/deploy` | ビルド確認 → 差分提示 → コミット確認 → `git push` を順次実行 |
+| `/check-prompt [テキスト]` | `PROMPTS` オブジェクトをレビュー。テキストを渡すと期待動作をシミュレート |
+| `/code-review` | コードレビュー（バグ・改善点の検出） |
+
+---
+
 ## ローカル開発
 
 ```bash
@@ -121,14 +134,10 @@ npm run build
 npm run preview
 ```
 
-### デプロイ（GitHub Pages）
+### デプロイ（Cloudflare Pages）
 
 ```bash
 git push origin main
 ```
 
-`vite.config.js` の `base` をリポジトリ名に合わせてください。
-
-```js
-base: "/conv-assist-app/",
-```
+Cloudflare Pages が自動でビルド・デプロイします。`vite.config.js` の `base` は `"/"` のままで問題ありません。
