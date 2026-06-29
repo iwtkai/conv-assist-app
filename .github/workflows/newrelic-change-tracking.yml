@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: New Relic Change Event
-        uses: newrelic/deployment-marker-action@85b4f6e10e8a134ae2fa62822768b8fcd4152fcd # v2.6.0
+        uses: newrelic/deployment-marker-action@d88a59ea8f713ad6935e60de27273157790b1e3b # v2.6.2
         with:
           apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
           guid: ${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}
