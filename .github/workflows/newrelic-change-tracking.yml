@@ -1,0 +1,23 @@
+name: New Relic Change Tracking
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  newrelic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: New Relic Change Event
+        uses: newrelic/deployment-marker-action@v2.6.0
+        with:
+          apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
+          guid: ${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}
+          commandType: "changeTrackingCreateEvent"
+          entitySearch: "id='${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}'"
+          version: "${{ github.sha }}"
+          category: "Deployment"
+          type: "Basic"
+          user: "${{ github.actor }}"
+          description: "${{ github.event.head_commit.message }}"
