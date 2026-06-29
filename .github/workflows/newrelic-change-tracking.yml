@@ -9,6 +9,10 @@ jobs:
   newrelic:
     runs-on: ubuntu-latest
     steps:
+      - name: Get Unix Timestamp
+        id: timestamp
+        run: echo "value=$(date +%s)" >> $GITHUB_OUTPUT
+
       - name: New Relic Change Event
         uses: newrelic/deployment-marker-action@v2.6.0
         with:
@@ -21,3 +25,4 @@ jobs:
           type: "Basic"
           user: "${{ github.actor }}"
           description: "${{ github.event.head_commit.message }}"
+          timestamp: "${{ steps.timestamp.outputs.value }}"
