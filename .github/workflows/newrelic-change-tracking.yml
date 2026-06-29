@@ -5,6 +5,8 @@ on:
     branches:
       - main
 
+permissions: read-all
+
 jobs:
   newrelic:
     runs-on: ubuntu-latest
@@ -14,7 +16,7 @@ jobs:
         run: echo "value=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: New Relic Change Event
-        uses: newrelic/deployment-marker-action@v2.6.0
+        uses: newrelic/deployment-marker-action@85b4f6e10e8a134ae2fa62822768b8fcd4152fcd # v2.6.0
         with:
           apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
           guid: ${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}
