@@ -65,8 +65,8 @@ const TONE_META = {
 };
 
 const LANGS = {
-  en: { code: "en-US", label: "EN", sublabel: "相手の英語を聞き取る", flag: "🇺🇸", accent: "#3b82f6", accentDark: "#1d4ed8" },
-  ja: { code: "ja-JP", label: "JA", sublabel: "自分の日本語を英訳する", flag: "🇯🇵", accent: "#a78bfa", accentDark: "#7c3aed" },
+  en: { code: "en-US", label: "EN", sublabel: "相手の英語を聞き取る", flag: "🇺🇸", accent: "#2563eb", accentDark: "#1d4ed8" },
+  ja: { code: "ja-JP", label: "JA", sublabel: "自分の日本語を英訳する", flag: "🇯🇵", accent: "#8652f3", accentDark: "#7c3aed" },
 };
 
 const CSS = `
@@ -110,8 +110,13 @@ const CSS = `
   body {
     background: var(--bg);
     color: var(--text-primary);
-    font-family: 'Inter', 'Hiragino Sans', sans-serif;
+    font-family: 'Inter', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+
+  .jp-text {
+    letter-spacing: 0.04em;
+    font-feature-settings: "palt";
   }
 
   ::-webkit-scrollbar { width: 3px; }
@@ -292,6 +297,8 @@ const CSS = `
     color: var(--text-secondary);
     line-height: 1.85;
     overscroll-behavior: contain;
+    letter-spacing: 0.04em;
+    font-feature-settings: "palt";
   }
   .privacy-body h2 {
     font-size: 11px;
@@ -748,7 +755,7 @@ export default function ConversationAssistant() {
                   );
                 })()}
               </div>
-              <div className="card" style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.85 }}>
+              <div className="card jp-text" style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.85 }}>
                 {result.nuance}
               </div>
             </div>
@@ -783,7 +790,7 @@ export default function ConversationAssistant() {
                         <div style={{ fontSize: 15, color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.55, marginBottom: 5 }}>
                           {r.english}
                         </div>
-                        <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65 }}>
+                        <div className="jp-text" style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65 }}>
                           {r.japanese}
                         </div>
                       </div>
