@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { getInitialTheme } from "../App.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -15,6 +16,16 @@ const CSS = `
     --text-muted: #7a8fa8;
     --font-mono: 'JetBrains Mono', monospace;
     --radius-sm: 8px;
+  }
+
+  [data-theme="light"] {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f6;
+    --border: rgba(0,0,0,0.10);
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
   }
 
   html, body, #root { height: 100%; }
@@ -67,9 +78,10 @@ const CSS = `
 
 export default function LegalPage({ title, children }) {
   const navigate = useNavigate();
+  const theme = getInitialTheme();
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+    <div data-theme={theme} style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
       <style>{CSS}</style>
 
       <header style={{
