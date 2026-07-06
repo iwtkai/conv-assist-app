@@ -1,13 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { getInitialTheme } from "./theme.js";
 
 const MIN_STOPPING_MS = 400;
-
-export function getInitialTheme() {
-  const stored = localStorage.getItem("theme");
-  if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
 
 const SunIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -274,43 +269,6 @@ const CSS = `
   .analyze-btn:active:not(:disabled) { transform: translateY(0); }
   .analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  .privacy-overlay {
-    position: fixed; inset: 0; z-index: 100;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(6px);
-    display: flex; align-items: center; justify-content: center;
-    padding: 16px;
-    animation: fadeUp 0.2s ease both;
-  }
-  .privacy-sheet {
-    width: 100%; max-width: 520px;
-    max-height: min(80vh, 640px);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
-    display: flex; flex-direction: column;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.4);
-    animation: fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both;
-  }
-  .privacy-body {
-    overflow-y: auto;
-    padding: 0 20px 28px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.85;
-    overscroll-behavior: contain;
-    letter-spacing: 0.04em;
-    font-feature-settings: "palt";
-  }
-  .privacy-body h2 {
-    font-size: 11px;
-    font-family: var(--font-mono);
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    margin: 20px 0 6px;
-    text-transform: uppercase;
-  }
-  .privacy-body p { margin-bottom: 4px; }
   .privacy-link {
     background: none; border: none; padding: 0;
     color: var(--text-muted); font-size: 10px;
@@ -410,6 +368,7 @@ export default function ConversationAssistant() {
   const langRef = useRef(lang);
   const loadingRef = useRef(loading);
   const stopRequestedAtRef = useRef(0);
+  const stopTimeoutRef = useRef(null);
 
   useEffect(() => { langRef.current = lang; }, [lang]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
@@ -478,6 +437,8 @@ export default function ConversationAssistant() {
     rec.onerror = (e) => {
       if (e.error !== "no-speech") setError("マイクエラー: " + e.error);
       stopRequestedAtRef.current = 0;
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
       setListening(false);
       setStopping(false);
     };
@@ -487,7 +448,7 @@ export default function ConversationAssistant() {
       const elapsed = requestedAt ? performance.now() - requestedAt : Infinity;
       const remaining = MIN_STOPPING_MS - elapsed;
       if (remaining > 0) {
-        setTimeout(() => { setListening(false); setStopping(false); }, remaining);
+        stopTimeoutRef.current = setTimeout(() => { setListening(false); setStopping(false); }, remaining);
       } else {
         setListening(false);
         setStopping(false);
@@ -495,18 +456,29 @@ export default function ConversationAssistant() {
     };
     recognitionRef.current = rec;
 
-    return () => { rec.stop(); if (silenceTimer.current) clearTimeout(silenceTimer.current); };
+    return () => {
+      rec.stop();
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
+    };
   }, [lang, autoAnalyze, triggerAnalyze]);
+
+  // 録音を止めて「停止処理中」を最低MIN_STOPPING_MS表示する。言語切替・自動解析トグルなど、
+  // 録音中に設定を変えてrecを再生成させる操作は必ずこれを経由すること。
+  const stopForReconfigure = () => {
+    if (!listening) return;
+    stopRequestedAtRef.current = performance.now();
+    setStopping(true);
+    recognitionRef.current?.stop();
+    setInterim("");
+    if (silenceTimer.current) clearTimeout(silenceTimer.current);
+  };
 
   const toggleListen = () => {
     const rec = recognitionRef.current;
     if (!rec || stopping) return;
     if (listening) {
-      stopRequestedAtRef.current = performance.now();
-      setStopping(true);
-      rec.stop();
-      setInterim("");
-      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      stopForReconfigure();
     } else {
       setInput(""); setResult(null); setError(null); setInterim("");
       rec.start(); setListening(true);
@@ -514,7 +486,7 @@ export default function ConversationAssistant() {
   };
 
   const switchLang = (l) => {
-    if (listening) { recognitionRef.current?.stop(); setStopping(true); setInterim(""); }
+    stopForReconfigure();
     setLang(l);
     setInput(""); setResult(null); setError(null);
   };
@@ -575,7 +547,7 @@ export default function ConversationAssistant() {
           <span style={{ fontSize: 11, color: "var(--text-ghost)", fontFamily: "var(--font-mono)" }}>自動解析</span>
           <div
             className="toggle-track"
-            onClick={() => setAutoAnalyze(v => !v)}
+            onClick={() => { stopForReconfigure(); setAutoAnalyze(v => !v); }}
             style={{ background: autoAnalyze ? L.accentDark : "var(--surface-3)" }}
           >
             <div className="toggle-thumb" style={{ left: autoAnalyze ? 19 : 3 }} />
@@ -616,7 +588,7 @@ export default function ConversationAssistant() {
                     {val.label}
                   </span>
                 </div>
-                <span style={{ fontSize: 11, color: active ? "rgba(255,255,255,0.6)" : "var(--text-ghost)" }}>
+                <span className="jp-text" style={{ fontSize: 11, color: active ? "rgba(255,255,255,0.6)" : "var(--text-ghost)" }}>
                   {val.sublabel}
                 </span>
               </button>
@@ -629,7 +601,7 @@ export default function ConversationAssistant() {
       <main style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
 
         {!supported && (
-          <div style={{
+          <div className="jp-text" style={{
             padding: "10px 14px", borderRadius: "var(--radius-sm)",
             background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)",
             fontSize: 12, color: "#f87171",
@@ -751,7 +723,7 @@ export default function ConversationAssistant() {
 
         {/* Error */}
         {error && (
-          <div style={{ color: "#f87171", fontSize: 13, padding: "2px 0" }}>{error}</div>
+          <div className="jp-text" style={{ color: "#f87171", fontSize: 13, padding: "2px 0" }}>{error}</div>
         )}
 
         {/* Result */}

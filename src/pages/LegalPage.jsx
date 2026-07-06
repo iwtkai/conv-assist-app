@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { getInitialTheme } from "../App.jsx";
+import { getInitialTheme } from "../theme.js";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -10,10 +10,13 @@ const CSS = `
     --bg: #040711;
     --surface: #080f1e;
     --surface-2: #0d1628;
+    --surface-3: #111e34;
     --border: rgba(255,255,255,0.10);
+    --border-subtle: rgba(255,255,255,0.06);
     --text-primary: #f1f5f9;
     --text-secondary: #b8c5d6;
     --text-muted: #7a8fa8;
+    --text-ghost: #364d66;
     --font-mono: 'JetBrains Mono', monospace;
     --radius-sm: 8px;
   }
@@ -22,10 +25,13 @@ const CSS = `
     --bg: #f5f7fa;
     --surface: #ffffff;
     --surface-2: #eef1f6;
+    --surface-3: #e4e9f2;
     --border: rgba(0,0,0,0.10);
+    --border-subtle: rgba(0,0,0,0.06);
     --text-primary: #0f172a;
     --text-secondary: #334155;
     --text-muted: #64748b;
+    --text-ghost: #9aabbd;
   }
 
   html, body, #root { height: 100%; }
@@ -33,7 +39,7 @@ const CSS = `
   body {
     background: var(--bg);
     color: var(--text-primary);
-    font-family: 'Inter', 'Hiragino Sans', sans-serif;
+    font-family: 'Inter', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -51,6 +57,8 @@ const CSS = `
     color: var(--text-secondary);
     line-height: 1.85;
     margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    font-feature-settings: "palt";
   }
   .legal-body a {
     color: var(--text-secondary);
