@@ -7,7 +7,7 @@ export default function About() {
       <p>Conv Assist</p>
 
       <h2>運営者</h2>
-      <p>iwtkai</p>
+      <p>kai</p>
 
       <h2>サービス概要</h2>
       <p>Conv Assist は、英会話をリアルタイムでサポートするWebアプリです。相手の英語を聞き取って返答案を提示する「ENモード」と、自分の日本語を自然な英語に変換する「JAモード」を備えています。</p>

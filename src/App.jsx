@@ -850,7 +850,7 @@ export default function ConversationAssistant() {
         flexShrink: 0,
       }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-ghost)", letterSpacing: "0.08em" }}>
-          © {new Date().getFullYear()} iwtkai
+          © {new Date().getFullYear()} kai
         </span>
         <span style={{ color: "var(--border)", fontSize: 10 }}>|</span>
         <Link to="/about" className="privacy-link">運営者情報</Link>
