@@ -414,7 +414,7 @@ export default function ConversationAssistant() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-5",
           max_tokens: 1000,
           system: PROMPTS[currentLang],
           messages: [{ role: "user", content: text }],
@@ -422,7 +422,8 @@ export default function ConversationAssistant() {
       });
       const data = await res.json();
       const raw = data.content?.map(b => b.text || "").join("") || "";
-      setResult(JSON.parse(raw));
+      const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+      setResult(JSON.parse(cleaned));
     } catch {
       setError("解析に失敗しました。もう一度お試しください。");
     } finally {

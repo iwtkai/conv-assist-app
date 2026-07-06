@@ -28,7 +28,7 @@ npm run preview  # ビルド結果をローカルプレビュー
 ブラウザ (Web Speech API)
   → src/App.jsx (React state)
     → Cloudflare Workers プロキシ (WORKER_URL)
-      → Anthropic API (claude-sonnet-4-20250514)
+      → Anthropic API (claude-sonnet-5)
         → JSON レスポンス → UI に表示
 ```
 
