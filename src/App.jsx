@@ -649,7 +649,7 @@ export default function ConversationAssistant() {
                     ? `linear-gradient(135deg, ${L.accentDark}, ${L.accent})`
                     : `linear-gradient(135deg, ${L.accentDark}cc, ${L.accentDark})`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 28, transition: "background 0.25s, box-shadow 0.25s, opacity 0.25s",
+                fontSize: 28, transition: "background 0.25s, box-shadow 0.25s, opacity 0.25s, transform 0.1s",
                 boxShadow: listening && !stopping
                   ? `0 0 40px ${L.accent}55, 0 8px 24px rgba(0,0,0,0.4)`
                   : `0 0 16px ${L.accentDark}33, 0 4px 12px rgba(0,0,0,0.3)`,
