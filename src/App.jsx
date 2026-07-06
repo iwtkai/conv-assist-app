@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 
+const MIN_STOPPING_MS = 400;
+
 export function getInitialTheme() {
   const stored = localStorage.getItem("theme");
   if (stored === "light" || stored === "dark") return stored;
@@ -407,6 +409,7 @@ export default function ConversationAssistant() {
   const silenceTimer = useRef(null);
   const langRef = useRef(lang);
   const loadingRef = useRef(loading);
+  const stopRequestedAtRef = useRef(0);
 
   useEffect(() => { langRef.current = lang; }, [lang]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
@@ -474,10 +477,22 @@ export default function ConversationAssistant() {
 
     rec.onerror = (e) => {
       if (e.error !== "no-speech") setError("マイクエラー: " + e.error);
+      stopRequestedAtRef.current = 0;
       setListening(false);
       setStopping(false);
     };
-    rec.onend = () => { setListening(false); setStopping(false); };
+    rec.onend = () => {
+      const requestedAt = stopRequestedAtRef.current;
+      stopRequestedAtRef.current = 0;
+      const elapsed = requestedAt ? performance.now() - requestedAt : Infinity;
+      const remaining = MIN_STOPPING_MS - elapsed;
+      if (remaining > 0) {
+        setTimeout(() => { setListening(false); setStopping(false); }, remaining);
+      } else {
+        setListening(false);
+        setStopping(false);
+      }
+    };
     recognitionRef.current = rec;
 
     return () => { rec.stop(); if (silenceTimer.current) clearTimeout(silenceTimer.current); };
@@ -487,6 +502,7 @@ export default function ConversationAssistant() {
     const rec = recognitionRef.current;
     if (!rec || stopping) return;
     if (listening) {
+      stopRequestedAtRef.current = performance.now();
       setStopping(true);
       rec.stop();
       setInterim("");
