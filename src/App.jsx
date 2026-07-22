@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { getInitialTheme } from "./theme.js";
-
-const MIN_STOPPING_MS = 400;
+import { useSpeechRecognition } from "./useSpeechRecognition.js";
 
 const SunIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -221,6 +220,10 @@ const CSS = `
     width: 34px;
     height: 18px;
     border-radius: 9px;
+    border: none;
+    padding: 0;
+    appearance: none;
+    -webkit-appearance: none;
     position: relative;
     cursor: pointer;
     transition: background 0.2s;
@@ -342,19 +345,261 @@ const CSS = `
 
 `;
 
+function getMicVisuals(speech, L, langLabel) {
+  if (speech.stopping) {
+    return {
+      bg: `linear-gradient(135deg, #64748b, #94a3b8)`,
+      icon: "⏳",
+      labelColor: "var(--text-muted)",
+      statusText: "停止処理中…",
+    };
+  }
+  if (speech.listening) {
+    return {
+      bg: `linear-gradient(135deg, ${L.accentDark}, ${L.accent})`,
+      icon: "⏹",
+      labelColor: L.accent,
+      statusText: `● 録音中… (${langLabel})`,
+    };
+  }
+  return {
+    bg: `linear-gradient(135deg, ${L.accentDark}cc, ${L.accentDark})`,
+    icon: "🎙",
+    labelColor: "var(--text-ghost)",
+    statusText: `タップして${langLabel}で録音`,
+  };
+}
+
+function LangSwitcher({ lang, onSwitch }) {
+  return (
+    <div style={{ padding: "12px 16px 0", flexShrink: 0 }}>
+      <div style={{
+        display: "flex",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-md)",
+        padding: 3,
+        gap: 3,
+      }}>
+        {Object.entries(LANGS).map(([key, val]) => {
+          const active = lang === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`lang-tab${active ? " active" : ""}`}
+              onClick={() => onSwitch(key)}
+              style={{
+                background: active ? val.accentDark : "transparent",
+                boxShadow: active ? `0 0 20px ${val.accent}22` : "none",
+                borderRadius: "var(--radius-sm)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 15 }}>{val.flag}</span>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600,
+                  color: active ? "#fff" : "var(--text-ghost)",
+                  letterSpacing: "0.08em",
+                }}>
+                  {val.label}
+                </span>
+              </div>
+              <span className="jp-text" style={{ fontSize: 11, color: active ? "rgba(255,255,255,0.6)" : "var(--text-ghost)" }}>
+                {val.sublabel}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MicSection({ speech, L, micBg, micIcon, micLabelColor, micStatusText, onToggle }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "16px 0 8px" }}>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {speech.listening && (
+          <>
+            <div className="ripple-1" style={{
+              position: "absolute", width: 80, height: 80, borderRadius: "50%",
+              border: `1.5px solid ${L.accent}`,
+            }} />
+            <div className="ripple-2" style={{
+              position: "absolute", width: 80, height: 80, borderRadius: "50%",
+              border: `1.5px solid ${L.accent}`,
+            }} />
+          </>
+        )}
+        <button
+          type="button"
+          className="mic-btn"
+          onClick={onToggle}
+          disabled={!speech.supported || speech.stopping}
+          style={{
+            width: 72, height: 72, borderRadius: "50%", border: "none",
+            background: micBg,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 28, transition: "background 0.25s, box-shadow 0.25s, opacity 0.25s, transform 0.1s",
+            boxShadow: speech.listening && !speech.stopping
+              ? `0 0 40px ${L.accent}55, 0 8px 24px rgba(0,0,0,0.4)`
+              : `0 0 16px ${L.accentDark}33, 0 4px 12px rgba(0,0,0,0.3)`,
+            opacity: speech.stopping ? 0.75 : 1,
+          }}
+        >
+          {micIcon}
+        </button>
+      </div>
+
+      <div style={{
+        fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em",
+        color: micLabelColor,
+        transition: "color 0.3s",
+      }} className={speech.listening && !speech.stopping ? "pulsing" : ""}>
+        {micStatusText}
+      </div>
+    </div>
+  );
+}
+
+function TranscriptCard({ speech, isEN }) {
+  return (
+    <div className="card" style={{ padding: "14px 16px" }}>
+      <div className="section-label" style={{ marginBottom: 8 }}>
+        {isEN ? "TRANSCRIPT (EN)" : "TRANSCRIPT (JA)"}
+      </div>
+      <div style={{ fontSize: 14, lineHeight: 1.75, minHeight: 22 }}>
+        {speech.input && <span style={{ color: "var(--text-primary)" }}>{speech.input}</span>}
+        {speech.interim && <span style={{ color: "var(--text-muted)" }}> {speech.interim}</span>}
+        {!speech.input && !speech.interim && (
+          <span style={{ color: "var(--text-ghost)" }}>
+            {isEN ? "相手の英語がここに表示されます…" : "話した日本語がここに表示されます…"}
+          </span>
+        )}
+      </div>
+      {speech.input && (
+        <textarea
+          value={speech.input}
+          onChange={e => speech.setInput(e.target.value)}
+          rows={2}
+          style={{
+            width: "100%", marginTop: 10,
+            background: "transparent",
+            border: "none",
+            borderTop: "1px solid var(--border)",
+            paddingTop: 10,
+            color: "var(--text-muted)", fontSize: 12, resize: "none",
+            lineHeight: 1.65,
+          }}
+          placeholder="修正はここで編集できます"
+        />
+      )}
+    </div>
+  );
+}
+
+function ToneBadge({ tone }) {
+  if (!tone) return null;
+  const t = TONE_META[tone] || TONE_META.neutral;
+  return (
+    <span className="label-tag" style={{ background: t.bg, color: t.color }}>
+      {t.label}
+    </span>
+  );
+}
+
+function ResponseCard({ index, response, L, isEN, copied, onCopy }) {
+  return (
+    <div className="response-card">
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{
+              fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600,
+              color: L.accent, opacity: 0.5,
+            }}>
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span
+              className="label-tag"
+              style={{
+                background: isEN ? "rgba(59,130,246,0.08)" : "rgba(139,92,246,0.08)",
+                color: L.accent,
+              }}
+            >
+              {response.label}
+            </span>
+          </div>
+          <div style={{ fontSize: 15, color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.55, marginBottom: 5 }}>
+            {response.english}
+          </div>
+          <div className="jp-text" style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65 }}>
+            {response.japanese}
+          </div>
+        </div>
+        <button
+          type="button"
+          className={`copy-btn${copied ? " copied" : ""}`}
+          onClick={onCopy}
+        >
+          {copied ? "✓ done" : "copy"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ResultPanel({ result, isEN, L, copied, onCopy, onReset }) {
+  return (
+    <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+      {/* Nuance */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <span className="section-label">{isEN ? "NUANCE" : "INTENT CHECK"}</span>
+          <ToneBadge tone={result.tone} />
+        </div>
+        <div className="card jp-text" style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.85 }}>
+          {result.nuance}
+        </div>
+      </div>
+
+      {/* Responses */}
+      <div>
+        <div className="section-label" style={{ marginBottom: 8 }}>
+          {isEN ? "RESPONSE OPTIONS" : "ENGLISH PHRASES"}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {result.responses?.map((r, i) => (
+            <ResponseCard
+              key={`${i}-${r.english}`}
+              index={i}
+              response={r}
+              L={L}
+              isEN={isEN}
+              copied={copied === i}
+              onCopy={() => onCopy(r.english, i)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <button type="button" className="reset-btn" onClick={onReset}>
+        ← 新しい録音を始める
+      </button>
+    </div>
+  );
+}
+
 export default function ConversationAssistant() {
   const [theme, setTheme] = useState(getInitialTheme);
   const [lang, setLang] = useState("en");
-  const [input, setInput] = useState("");
-  const [interim, setInterim] = useState("");
-  const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
+  const [analyzeError, setAnalyzeError] = useState(null);
   const [copied, setCopied] = useState(null);
-  const [supported, setSupported] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
-  const [stopping, setStopping] = useState(false);
 
   const isDark = theme === "dark";
   const toggleTheme = () => {
@@ -363,20 +608,13 @@ export default function ConversationAssistant() {
     localStorage.setItem("theme", next);
   };
 
-  const recognitionRef = useRef(null);
-  const silenceTimer = useRef(null);
-  const langRef = useRef(lang);
   const loadingRef = useRef(loading);
-  const stopRequestedAtRef = useRef(0);
-  const stopTimeoutRef = useRef(null);
-
-  useEffect(() => { langRef.current = lang; }, [lang]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
 
   const triggerAnalyze = useCallback(async (text, currentLang) => {
     if (!text || loadingRef.current) return;
     setLoading(true);
-    setError(null);
+    setAnalyzeError(null);
     setResult(null);
     try {
       const res = await fetch(WORKER_URL, {
@@ -394,103 +632,25 @@ export default function ConversationAssistant() {
       const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
       setResult(JSON.parse(cleaned));
     } catch {
-      setError("解析に失敗しました。もう一度お試しください。");
+      setAnalyzeError("解析に失敗しました。もう一度お試しください。");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setSupported(false); return; }
-
-    const rec = new SR();
-    rec.lang = LANGS[lang].code;
-    rec.continuous = true;
-    rec.interimResults = true;
-
-    rec.onresult = (e) => {
-      let finalText = "";
-      let interimText = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t;
-        else interimText += t;
-      }
-      if (finalText) {
-        setInput(prev => {
-          const updated = (prev + " " + finalText).trim();
-          if (autoAnalyze) {
-            if (silenceTimer.current) clearTimeout(silenceTimer.current);
-            silenceTimer.current = setTimeout(() => {
-              triggerAnalyze(updated, langRef.current);
-            }, 2000);
-          }
-          return updated;
-        });
-        setInterim("");
-      } else {
-        setInterim(interimText);
-      }
-    };
-
-    rec.onerror = (e) => {
-      if (e.error !== "no-speech") setError("マイクエラー: " + e.error);
-      stopRequestedAtRef.current = 0;
-      if (silenceTimer.current) clearTimeout(silenceTimer.current);
-      if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
-      setListening(false);
-      setStopping(false);
-    };
-    rec.onend = () => {
-      const requestedAt = stopRequestedAtRef.current;
-      stopRequestedAtRef.current = 0;
-      const elapsed = requestedAt ? performance.now() - requestedAt : Infinity;
-      const remaining = MIN_STOPPING_MS - elapsed;
-      if (remaining > 0) {
-        stopTimeoutRef.current = setTimeout(() => { setListening(false); setStopping(false); }, remaining);
-      } else {
-        setListening(false);
-        setStopping(false);
-      }
-    };
-    recognitionRef.current = rec;
-
-    return () => {
-      rec.stop();
-      if (silenceTimer.current) clearTimeout(silenceTimer.current);
-      if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
-    };
-  }, [lang, autoAnalyze, triggerAnalyze]);
-
-  // 録音を止めて「停止処理中」を最低MIN_STOPPING_MS表示する。言語切替・自動解析トグルなど、
-  // 録音中に設定を変えてrecを再生成させる操作は必ずこれを経由すること。
-  const stopForReconfigure = () => {
-    if (!listening) return;
-    stopRequestedAtRef.current = performance.now();
-    setStopping(true);
-    recognitionRef.current?.stop();
-    setInterim("");
-    if (silenceTimer.current) clearTimeout(silenceTimer.current);
-  };
-
-  const toggleListen = () => {
-    const rec = recognitionRef.current;
-    if (!rec || stopping) return;
-    if (listening) {
-      stopForReconfigure();
-    } else {
-      setInput(""); setResult(null); setError(null); setInterim("");
-      rec.start(); setListening(true);
-    }
-  };
+  const speech = useSpeechRecognition({
+    lang,
+    langCode: LANGS[lang].code,
+    autoAnalyze,
+    onAutoAnalyze: triggerAnalyze,
+  });
 
   const switchLang = (l) => {
-    stopForReconfigure();
+    speech.stopForReconfigure();
     setLang(l);
-    setInput(""); setResult(null); setError(null);
+    speech.resetInput();
+    setResult(null);
   };
-
 
   const copyText = (text, idx) => {
     navigator.clipboard.writeText(text);
@@ -500,6 +660,9 @@ export default function ConversationAssistant() {
 
   const L = LANGS[lang];
   const isEN = lang === "en";
+  const langLabel = isEN ? "英語" : "日本語";
+  const displayError = speech.error || analyzeError;
+  const micVisuals = getMicVisuals(speech, L, langLabel);
 
   return (
     <div data-theme={theme} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", transition: "background 0.25s, color 0.25s" }}>
@@ -532,6 +695,7 @@ export default function ConversationAssistant() {
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
           {/* Theme toggle */}
           <button
+            type="button"
             onClick={toggleTheme}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -545,62 +709,26 @@ export default function ConversationAssistant() {
           </button>
 
           <span style={{ fontSize: 11, color: "var(--text-ghost)", fontFamily: "var(--font-mono)" }}>自動解析</span>
-          <div
+          <button
+            type="button"
             className="toggle-track"
-            onClick={() => { stopForReconfigure(); setAutoAnalyze(v => !v); }}
+            onClick={() => { speech.stopForReconfigure(); setAutoAnalyze(v => !v); }}
+            aria-pressed={autoAnalyze}
+            aria-label="自動解析"
             style={{ background: autoAnalyze ? L.accentDark : "var(--surface-3)" }}
           >
             <div className="toggle-thumb" style={{ left: autoAnalyze ? 19 : 3 }} />
-          </div>
+          </button>
         </div>
       </header>
 
       {/* Lang switcher */}
-      <div style={{ padding: "12px 16px 0", flexShrink: 0 }}>
-        <div style={{
-          display: "flex",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-md)",
-          padding: 3,
-          gap: 3,
-        }}>
-          {Object.entries(LANGS).map(([key, val]) => {
-            const active = lang === key;
-            return (
-              <button
-                key={key}
-                className={`lang-tab${active ? " active" : ""}`}
-                onClick={() => switchLang(key)}
-                style={{
-                  background: active ? val.accentDark : "transparent",
-                  boxShadow: active ? `0 0 20px ${val.accent}22` : "none",
-                  borderRadius: "var(--radius-sm)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 15 }}>{val.flag}</span>
-                  <span style={{
-                    fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600,
-                    color: active ? "#fff" : "var(--text-ghost)",
-                    letterSpacing: "0.08em",
-                  }}>
-                    {val.label}
-                  </span>
-                </div>
-                <span className="jp-text" style={{ fontSize: 11, color: active ? "rgba(255,255,255,0.6)" : "var(--text-ghost)" }}>
-                  {val.sublabel}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <LangSwitcher lang={lang} onSwitch={switchLang} />
 
       {/* Main scroll area */}
       <main style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
 
-        {!supported && (
+        {!speech.supported && (
           <div className="jp-text" style={{
             padding: "10px 14px", borderRadius: "var(--radius-sm)",
             background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)",
@@ -610,95 +738,24 @@ export default function ConversationAssistant() {
           </div>
         )}
 
-        {/* Mic section */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "16px 0 8px" }}>
-          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {listening && (
-              <>
-                <div className="ripple-1" style={{
-                  position: "absolute", width: 80, height: 80, borderRadius: "50%",
-                  border: `1.5px solid ${L.accent}`,
-                }} />
-                <div className="ripple-2" style={{
-                  position: "absolute", width: 80, height: 80, borderRadius: "50%",
-                  border: `1.5px solid ${L.accent}`,
-                }} />
-              </>
-            )}
-            <button
-              className="mic-btn"
-              onClick={toggleListen}
-              disabled={!supported || stopping}
-              style={{
-                width: 72, height: 72, borderRadius: "50%", border: "none",
-                background: stopping
-                  ? `linear-gradient(135deg, #64748b, #94a3b8)`
-                  : listening
-                    ? `linear-gradient(135deg, ${L.accentDark}, ${L.accent})`
-                    : `linear-gradient(135deg, ${L.accentDark}cc, ${L.accentDark})`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 28, transition: "background 0.25s, box-shadow 0.25s, opacity 0.25s, transform 0.1s",
-                boxShadow: listening && !stopping
-                  ? `0 0 40px ${L.accent}55, 0 8px 24px rgba(0,0,0,0.4)`
-                  : `0 0 16px ${L.accentDark}33, 0 4px 12px rgba(0,0,0,0.3)`,
-                opacity: stopping ? 0.75 : 1,
-              }}
-            >
-              {stopping ? "⏳" : listening ? "⏹" : "🎙"}
-            </button>
-          </div>
+        <MicSection
+          speech={speech}
+          L={L}
+          micBg={micVisuals.bg}
+          micIcon={micVisuals.icon}
+          micLabelColor={micVisuals.labelColor}
+          micStatusText={micVisuals.statusText}
+          onToggle={() => speech.toggleListen(() => setResult(null))}
+        />
 
-          <div style={{
-            fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em",
-            color: stopping ? "var(--text-muted)" : listening ? L.accent : "var(--text-ghost)",
-            transition: "color 0.3s",
-          }} className={listening && !stopping ? "pulsing" : ""}>
-            {stopping
-              ? "停止処理中…"
-              : listening
-                ? `● 録音中… (${isEN ? "英語" : "日本語"})`
-                : `タップして${isEN ? "英語" : "日本語"}で録音`}
-          </div>
-        </div>
-
-        {/* Transcript */}
-        <div className="card" style={{ padding: "14px 16px" }}>
-          <div className="section-label" style={{ marginBottom: 8 }}>
-            {isEN ? "TRANSCRIPT (EN)" : "TRANSCRIPT (JA)"}
-          </div>
-          <div style={{ fontSize: 14, lineHeight: 1.75, minHeight: 22 }}>
-            {input && <span style={{ color: "var(--text-primary)" }}>{input}</span>}
-            {interim && <span style={{ color: "var(--text-muted)" }}> {interim}</span>}
-            {!input && !interim && (
-              <span style={{ color: "var(--text-ghost)" }}>
-                {isEN ? "相手の英語がここに表示されます…" : "話した日本語がここに表示されます…"}
-              </span>
-            )}
-          </div>
-          {input && (
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              rows={2}
-              style={{
-                width: "100%", marginTop: 10,
-                background: "transparent",
-                border: "none",
-                borderTop: "1px solid var(--border)",
-                paddingTop: 10,
-                color: "var(--text-muted)", fontSize: 12, resize: "none",
-                lineHeight: 1.65,
-              }}
-              placeholder="修正はここで編集できます"
-            />
-          )}
-        </div>
+        <TranscriptCard speech={speech} isEN={isEN} />
 
         {/* Manual analyze button */}
-        {input && !autoAnalyze && (
+        {speech.input && !autoAnalyze && (
           <button
+            type="button"
             className="analyze-btn"
-            onClick={() => triggerAnalyze(input.trim(), lang)}
+            onClick={() => triggerAnalyze(speech.input.trim(), lang)}
             disabled={loading}
             style={{ background: `linear-gradient(135deg, ${L.accentDark}, ${L.accent})` }}
           >
@@ -722,86 +779,24 @@ export default function ConversationAssistant() {
         )}
 
         {/* Error */}
-        {error && (
-          <div className="jp-text" style={{ color: "#f87171", fontSize: 13, padding: "2px 0" }}>{error}</div>
+        {displayError && (
+          <div className="jp-text" style={{ color: "#f87171", fontSize: 13, padding: "2px 0" }}>{displayError}</div>
         )}
 
         {/* Result */}
         {result && !loading && (
-          <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
-            {/* Nuance */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <span className="section-label">{isEN ? "NUANCE" : "INTENT CHECK"}</span>
-                {result.tone && (() => {
-                  const t = TONE_META[result.tone] || TONE_META.neutral;
-                  return (
-                    <span className="label-tag" style={{ background: t.bg, color: t.color }}>
-                      {t.label}
-                    </span>
-                  );
-                })()}
-              </div>
-              <div className="card jp-text" style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.85 }}>
-                {result.nuance}
-              </div>
-            </div>
-
-            {/* Responses */}
-            <div>
-              <div className="section-label" style={{ marginBottom: 8 }}>
-                {isEN ? "RESPONSE OPTIONS" : "ENGLISH PHRASES"}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {result.responses?.map((r, i) => (
-                  <div key={i} className="response-card">
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                          <span style={{
-                            fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600,
-                            color: L.accent, opacity: 0.5,
-                          }}>
-                            {String(i + 1).padStart(2, "0")}
-                          </span>
-                          <span
-                            className="label-tag"
-                            style={{
-                              background: isEN ? "rgba(59,130,246,0.08)" : "rgba(139,92,246,0.08)",
-                              color: L.accent,
-                            }}
-                          >
-                            {r.label}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 15, color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.55, marginBottom: 5 }}>
-                          {r.english}
-                        </div>
-                        <div className="jp-text" style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65 }}>
-                          {r.japanese}
-                        </div>
-                      </div>
-                      <button
-                        className={`copy-btn${copied === i ? " copied" : ""}`}
-                        onClick={() => copyText(r.english, i)}
-                      >
-                        {copied === i ? "✓ done" : "copy"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button className="reset-btn" onClick={() => { setInput(""); setResult(null); setError(null); }}>
-              ← 新しい録音を始める
-            </button>
-          </div>
+          <ResultPanel
+            result={result}
+            isEN={isEN}
+            L={L}
+            copied={copied}
+            onCopy={copyText}
+            onReset={() => { speech.resetInput(); setResult(null); }}
+          />
         )}
 
         {/* Empty state */}
-        {!result && !loading && !input && (
+        {!result && !loading && !speech.input && (
           <div style={{
             textAlign: "center", padding: "24px 0",
             color: "var(--text-ghost)", fontSize: 11,
@@ -817,7 +812,7 @@ export default function ConversationAssistant() {
 
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, padding: "8px 16px 0" }}>
         <a href="https://ko-fi.com/A0A01ZHER8" target="_blank" rel="noreferrer" className="pill-btn pill-kofi">
-          <span style={{ fontSize: 14 }}>☕</span>
+          <span style={{ fontSize: 14 }}>☕</span>{" "}
           コーヒーを奢る
         </a>
         <a
@@ -826,7 +821,7 @@ export default function ConversationAssistant() {
           rel="noreferrer"
           className="feedback-btn"
         >
-          <span style={{ fontSize: 14 }}>💬</span>
+          <span style={{ fontSize: 14 }}>💬</span>{" "}
           感想を教えてください
         </a>
       </div>

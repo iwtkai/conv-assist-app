@@ -98,7 +98,7 @@ export default function LegalPage({ title, children }) {
         display: "flex", alignItems: "center", gap: 12,
         flexShrink: 0,
       }}>
-        <button className="back-btn" onClick={() => navigate("/")}>
+        <button type="button" className="back-btn" onClick={() => navigate("/")}>
           ← 戻る
         </button>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.1em" }}>
