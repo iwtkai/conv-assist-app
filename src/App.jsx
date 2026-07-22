@@ -352,6 +352,9 @@ function getMicVisuals(speech, L, langLabel) {
       icon: "⏳",
       labelColor: "var(--text-muted)",
       statusText: "停止処理中…",
+      boxShadow: `0 0 16px ${L.accentDark}33, 0 4px 12px rgba(0,0,0,0.3)`,
+      opacity: 0.75,
+      pulsing: false,
     };
   }
   if (speech.listening) {
@@ -360,6 +363,9 @@ function getMicVisuals(speech, L, langLabel) {
       icon: "⏹",
       labelColor: L.accent,
       statusText: `● 録音中… (${langLabel})`,
+      boxShadow: `0 0 40px ${L.accent}55, 0 8px 24px rgba(0,0,0,0.4)`,
+      opacity: 1,
+      pulsing: true,
     };
   }
   return {
@@ -367,6 +373,9 @@ function getMicVisuals(speech, L, langLabel) {
     icon: "🎙",
     labelColor: "var(--text-ghost)",
     statusText: `タップして${langLabel}で録音`,
+    boxShadow: `0 0 16px ${L.accentDark}33, 0 4px 12px rgba(0,0,0,0.3)`,
+    opacity: 1,
+    pulsing: false,
   };
 }
 
@@ -416,7 +425,7 @@ function LangSwitcher({ lang, onSwitch }) {
   );
 }
 
-function MicSection({ speech, L, micBg, micIcon, micLabelColor, micStatusText, onToggle }) {
+function MicSection({ speech, L, micVisuals, onToggle }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "16px 0 8px" }}>
       <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -439,25 +448,23 @@ function MicSection({ speech, L, micBg, micIcon, micLabelColor, micStatusText, o
           disabled={!speech.supported || speech.stopping}
           style={{
             width: 72, height: 72, borderRadius: "50%", border: "none",
-            background: micBg,
+            background: micVisuals.bg,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 28, transition: "background 0.25s, box-shadow 0.25s, opacity 0.25s, transform 0.1s",
-            boxShadow: speech.listening && !speech.stopping
-              ? `0 0 40px ${L.accent}55, 0 8px 24px rgba(0,0,0,0.4)`
-              : `0 0 16px ${L.accentDark}33, 0 4px 12px rgba(0,0,0,0.3)`,
-            opacity: speech.stopping ? 0.75 : 1,
+            boxShadow: micVisuals.boxShadow,
+            opacity: micVisuals.opacity,
           }}
         >
-          {micIcon}
+          {micVisuals.icon}
         </button>
       </div>
 
       <div style={{
         fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em",
-        color: micLabelColor,
+        color: micVisuals.labelColor,
         transition: "color 0.3s",
-      }} className={speech.listening && !speech.stopping ? "pulsing" : ""}>
-        {micStatusText}
+      }} className={micVisuals.pulsing ? "pulsing" : ""}>
+        {micVisuals.statusText}
       </div>
     </div>
   );
@@ -615,6 +622,7 @@ export default function ConversationAssistant() {
     if (!text || loadingRef.current) return;
     setLoading(true);
     setAnalyzeError(null);
+    speech.setError(null);
     setResult(null);
     try {
       const res = await fetch(WORKER_URL, {
@@ -650,6 +658,7 @@ export default function ConversationAssistant() {
     setLang(l);
     speech.resetInput();
     setResult(null);
+    setAnalyzeError(null);
   };
 
   const copyText = (text, idx) => {
@@ -741,11 +750,8 @@ export default function ConversationAssistant() {
         <MicSection
           speech={speech}
           L={L}
-          micBg={micVisuals.bg}
-          micIcon={micVisuals.icon}
-          micLabelColor={micVisuals.labelColor}
-          micStatusText={micVisuals.statusText}
-          onToggle={() => speech.toggleListen(() => setResult(null))}
+          micVisuals={micVisuals}
+          onToggle={() => speech.toggleListen(() => { setResult(null); setAnalyzeError(null); })}
         />
 
         <TranscriptCard speech={speech} isEN={isEN} />

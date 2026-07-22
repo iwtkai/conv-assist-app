@@ -94,6 +94,11 @@ export function useSpeechRecognition({ lang, langCode, autoAnalyze, onAutoAnalyz
     if (silenceTimer.current) clearTimeout(silenceTimer.current);
   }, [listening]);
 
+  const resetInput = useCallback(() => {
+    setInput("");
+    setError(null);
+  }, []);
+
   const toggleListen = useCallback((onStart) => {
     const rec = recognitionRef.current;
     if (!rec || stopping) return;
@@ -101,18 +106,12 @@ export function useSpeechRecognition({ lang, langCode, autoAnalyze, onAutoAnalyz
       stopForReconfigure();
     } else {
       onStart?.();
-      setInput("");
+      resetInput();
       setInterim("");
-      setError(null);
       rec.start();
       setListening(true);
     }
-  }, [stopping, listening, stopForReconfigure]);
-
-  const resetInput = useCallback(() => {
-    setInput("");
-    setError(null);
-  }, []);
+  }, [stopping, listening, stopForReconfigure, resetInput]);
 
   return {
     input, setInput,
