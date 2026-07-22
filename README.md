@@ -166,7 +166,7 @@ npm run dev
 | **Claude Code** | `anthropic.claude-code` 拡張機能をプリインストール。加えて `postCreateCommand` で公式インストーラー（`curl -fsSL https://claude.ai/install.sh \| bash`）により CLI をセットアップ |
 | **GitHub CLI（`gh`）** | devcontainer feature（`ghcr.io/devcontainers/features/github-cli`）で導入。Codespaces では自動的に認証済み |
 | **GitHub Copilot CLI** | `postCreateCommand` で `@github/copilot` を npm グローバルインストールし、`copilot` コマンドとして使用可能 |
-| **`gh copilot`（gh 拡張機能）** | `postCreateCommand` で `gh extension install github/gh-copilot` を実行し、`gh copilot suggest` / `gh copilot explain` が使用可能 |
+| **`gh copilot`** | GitHub CLI に組み込み済みのサブコマンド。追加インストール不要で `gh copilot suggest` / `gh copilot explain` が使用可能 |
 
 - **Claude Code**：初回起動時（`claude` コマンド実行、または拡張機能からの起動時）に Anthropic アカウントでのログインが必要です。ブラウザ認証のリンクが表示されるので、指示に従ってサインインしてください。
 - **GitHub Copilot CLI**：初回起動時に `copilot` コマンドを実行すると GitHub アカウントでのログインが求められます（Copilot ライセンスが必要）。

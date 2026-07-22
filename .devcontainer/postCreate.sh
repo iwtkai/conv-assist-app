@@ -7,7 +7,5 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 npm install -g @github/copilot
 
-# コンテナ再ビルド時など既にインストール済みだと install が失敗するため upgrade にフォールバック
-if ! gh extension install github/gh-copilot; then
-  gh extension upgrade gh-copilot
-fi
+# gh CLI には copilot サブコマンドが組み込み済みのため、
+# gh extension install github/gh-copilot は "built-in command" と衝突し失敗する。
