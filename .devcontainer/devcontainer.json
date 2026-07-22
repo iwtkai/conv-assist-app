@@ -11,7 +11,7 @@
       "onAutoForward": "openPreview"
     }
   },
-  "postCreateCommand": "npm install && curl -fsSL https://claude.ai/install.sh | bash && npm install -g @github/copilot && gh extension install github/gh-copilot",
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
   "customizations": {
     "vscode": {
       "extensions": [
