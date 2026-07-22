@@ -26,7 +26,6 @@
           "connectionId": "iwtkai",
           "projectKey": "iwtkai_conv-assist-app"
         },
-        "window.menuBarVisibility": "classic",
         "workbench.colorTheme": "Default Dark Modern"
       }
     }
