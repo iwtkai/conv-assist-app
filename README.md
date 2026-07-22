@@ -141,3 +141,31 @@ git push origin main
 ```
 
 Cloudflare Pages が自動でビルド・デプロイします。`vite.config.js` の `base` は `"/"` のままで問題ありません。
+
+---
+
+## GitHub Codespaces で開発
+
+GitHub 上でリポジトリの **Code → Codespaces → Create codespace on main** から起動できます。`.devcontainer/devcontainer.json` により、起動時に `npm install` が自動実行されます。
+
+Codespace 内のターミナルで以下を実行してください。
+
+```bash
+npm run dev
+```
+
+ポート `5173` が自動でフォワードされるので、「PORTS」タブに表示される URL（HTTPS）を開けばアクセスできます。マイク権限が必要な音声認識機能も、HTTPS 経由なので問題なく動作します（**Chrome / Edge** のみ対応。ブラウザの Codespaces 上でも同様）。
+
+### GitHub Copilot / Claude Code / GitHub CLI
+
+`.devcontainer/devcontainer.json` で以下を自動セットアップ済みです。
+
+| ツール | 内容 |
+|--------|------|
+| **GitHub Copilot** | `GitHub.copilot` / `GitHub.copilot-chat` 拡張機能をプリインストール。Copilot ライセンスを持つ GitHub アカウントでサインインすれば利用可能 |
+| **Claude Code** | `anthropic.claude-code` 拡張機能をプリインストール。加えて `postCreateCommand` で公式インストーラー（`curl -fsSL https://claude.ai/install.sh \| bash`）により CLI をセットアップ |
+| **GitHub CLI（`gh`）** | devcontainer feature（`ghcr.io/devcontainers/features/github-cli`）で導入。Codespaces では自動的に認証済み |
+| **GitHub Copilot CLI** | `postCreateCommand` で `gh extension install github/gh-copilot` を実行し、`gh copilot suggest` / `gh copilot explain` が使用可能 |
+
+- **Claude Code**：初回起動時（`claude` コマンド実行、または拡張機能からの起動時）に Anthropic アカウントでのログインが必要です。ブラウザ認証のリンクが表示されるので、指示に従ってサインインしてください。
+- **GitHub Copilot CLI**：Copilot ライセンスを持つアカウントであれば `gh auth login` 済みの状態（Codespaces では自動）で `gh copilot suggest "<やりたいこと>"` のように使えます。

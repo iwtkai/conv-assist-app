@@ -1,0 +1,32 @@
+{
+  "name": "conv-assist-app",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite Dev Server",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "npm install && curl -fsSL https://claude.ai/install.sh | bash && gh extension install github/gh-copilot",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "sonarlint.connectedMode.project": {
+          "connectionId": "iwtkai",
+          "projectKey": "iwtkai_conv-assist-app"
+        }
+      }
+    }
+  }
+}
